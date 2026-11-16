@@ -1,0 +1,88 @@
+name: Compiler S.C.P
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Décompresser le projet
+        run: unzip -o SCP.zip
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.9"
+
+      - name: Compiler l'APK
+        working-directory: projet
+        run: gradle assembleRelease --no-daemon
+
+      - name: Renommer l'APK
+        run: cp projet/app/build/outputs/apk/release/app-release.apk S.C.P-Android-1.${{ github.run_number }}.apk
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: android
+          path: S.C.P-Android-*.apk
+
+  pc:
+    runs-on: windows-latest
+    env:
+      CSC_IDENTITY_AUTO_DISCOVERY: "false"
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Décompresser le projet
+        run: Expand-Archive -Path SCP.zip -DestinationPath . -Force
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Copier le site dans l'app PC
+        run: Copy-Item projet/app/src/main/assets/index.html projet/desktop/index.html
+
+      - name: Compiler le .exe
+        working-directory: projet/desktop
+        run: |
+          npm install
+          npm pkg set version=1.${{ github.run_number }}.0
+          npx electron-builder --win portable --publish never
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pc
+          path: projet/desktop/dist/*.exe
+
+  publier:
+    needs: [ android, pc ]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: sortie
+          merge-multiple: true
+
+      - name: Publier la version
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v1.${{ github.run_number }}
+          name: S.C.P v1.${{ github.run_number }}
+          body: |
+            Téléphone Android : téléchargez le fichier .apk et installez-le.
+            PC Windows : téléchargez le fichier .exe et lancez-le (aucune installation).
+          files: sortie/*
+          make_latest: true
