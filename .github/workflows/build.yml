@@ -20,7 +20,9 @@ jobs:
           d=$(dirname "$(find extrait -name settings.gradle.kts | head -1)")
           echo "Projet trouvé dans : $d"
           mv "$d" projet
-          ls projet
+
+      - name: Ajouter les musiques
+        run: python3 projet/outils/musique.py musique projet/app/src/main/assets/musique
 
       - uses: actions/setup-java@v5
         with:
@@ -56,14 +58,16 @@ jobs:
           $d = (Get-ChildItem extrait -Recurse -Filter settings.gradle.kts | Select-Object -First 1).DirectoryName
           Write-Host "Projet trouvé dans : $d"
           Move-Item $d projet
-          Get-ChildItem projet
+
+      - name: Ajouter les musiques
+        run: python projet/outils/musique.py musique projet/app/src/main/assets/musique
 
       - uses: actions/setup-node@v5
         with:
           node-version: "20"
 
-      - name: Copier le site dans l'app PC
-        run: Copy-Item projet/app/src/main/assets/index.html projet/desktop/index.html
+      - name: Copier le site et les musiques dans l'app PC
+        run: Copy-Item -Path projet/app/src/main/assets/* -Destination projet/desktop -Recurse -Force
 
       - name: Compiler le .exe
         working-directory: projet/desktop
