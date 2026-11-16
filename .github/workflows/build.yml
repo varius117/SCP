@@ -12,12 +12,17 @@ jobs:
   android:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Décompresser le projet
-        run: unzip -o SCP.zip
+        run: |
+          unzip -o SCP.zip -d extrait
+          d=$(dirname "$(find extrait -name settings.gradle.kts | head -1)")
+          echo "Projet trouvé dans : $d"
+          mv "$d" projet
+          ls projet
 
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: "17"
@@ -43,12 +48,17 @@ jobs:
     env:
       CSC_IDENTITY_AUTO_DISCOVERY: "false"
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Décompresser le projet
-        run: Expand-Archive -Path SCP.zip -DestinationPath . -Force
+        run: |
+          Expand-Archive -Path SCP.zip -DestinationPath extrait -Force
+          $d = (Get-ChildItem extrait -Recurse -Filter settings.gradle.kts | Select-Object -First 1).DirectoryName
+          Write-Host "Projet trouvé dans : $d"
+          Move-Item $d projet
+          Get-ChildItem projet
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: "20"
 
